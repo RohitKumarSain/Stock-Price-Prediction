@@ -1,6 +1,4 @@
 import streamlit as st
-import os  # Add this import
-from dotenv import load_dotenv  # Add this import
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -13,12 +11,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
-load_dotenv()
+st.set_page_config(page_title="GrowwwPro", layout="wide")
 
-st.set_page_config(page_title="Pro Trading Terminal", layout="wide")
-
-# Fetch the API key safely
-MASSIVE_API_KEY = os.getenv("MASSIVE_API_KEY")
+MASSIVE_API_KEY = "DV7Tmnz6qSuGtQQHJauihi3jRNgfKGcT"
 
 ticker_input = st.text_input("ENTER TICKER SYMBOL (e.g., RELIANCE, TCS, INFY, AAPL):", value="SBIN").upper()
 
