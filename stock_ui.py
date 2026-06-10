@@ -1,23 +1,26 @@
-import streamlit as st
-import yfinance as yf
-import pandas as pd
-import numpy as np
-import requests
+import streamlit as st #streamlit UI
+import yfinance as yf # yahoo finance API
+import pandas as pd #for data manipulation and dataframe
+import numpy as np #for numerical computation
+import requests #for http request
 import time
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+import plotly.graph_objects as go #for data visualisation
+from datetime import datetime #for data and time 
+from sklearn.pipeline import Pipeline # for create pipeline
+from sklearn.preprocessing import StandardScaler #for feature scaling
+from sklearn.linear_model import LinearRegression # for linear regression model
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score #for evaluation
 
-st.set_page_config(page_title="GrowwwPro", layout="wide")
+# set page title
+st.set_page_config(page_title="Stock Price Prediction", layout="wide")
 
+# use massive api key from massive.com for chart visualisation
 MASSIVE_API_KEY = "DV7Tmnz6qSuGtQQHJauihi3jRNgfKGcT"
 
-ticker_input = st.text_input("ENTER TICKER SYMBOL (e.g., RELIANCE, TCS, INFY, AAPL):", value="SBIN").upper()
+# taking input from user
+ticker_input = st.text_input("Enter Ticker Symbol (e.g., RELIANCE, TCS, INFY, AAPL):", value="SBIN").upper()
 
-# Format exact ticker boundaries
+# format exact ticker boundaries
 ticker_symbol = ticker_input if ticker_input.endswith(".NS") else f"{ticker_input}.NS"
 massive_ticker = ticker_input.replace(".NS", "")
 
@@ -43,16 +46,16 @@ def create_features(df):
 # 20 yrs data model training with pipeline 
 def train_model_pipeline_live(symbol):
     try:
-        # Download 20 years raw timeline rows
+        # download 20 years raw timeline rows
         ticker_obj = yf.Ticker(symbol)
         raw_history = ticker_obj.history(period="max")
         if raw_history is None or raw_history.empty:
             return None
             
-        # Bound historical lookup matrix
+        # bound historical lookup matrix
         raw_history = raw_history.loc["2006-01-01":]
         
-        # Flatten structure dimensions
+        # flatten structure dimensions
         if isinstance(raw_history.columns, pd.MultiIndex):
             raw_history.columns = raw_history.columns.get_level_values(0)
             
@@ -86,7 +89,7 @@ def train_model_pipeline_live(symbol):
         ])
         final_model_pipe.fit(X_train, y_train)
         
-        # Evaluate model analytics safely strictly using your clean unseen out-of-sample Test partitions
+        # evaluate model analytics safely strictly using your clean unseen out-of-sample Test partitions
         y_pred_final = np.asarray(final_model_pipe.predict(X_test))
         y_test_values = np.asarray(y_test)
         
@@ -98,12 +101,12 @@ def train_model_pipeline_live(symbol):
         prediction_value = float(np.asarray(final_model_pipe.predict(latest_features_row)).item())
         last_known_close = float(np.asarray(processed_df['Close'].dropna().iloc[-1]).item())
         
-        # Compile structured validation dataset slice to feed backtest tracking metrics chart columns
+        # compile structured validation dataset slice to feed backtest tracking metrics chart columns
         backtest_dates = ml_df.index[split:]
         backtest_df = pd.DataFrame({
             "Actual": y_test_values,
             "Predicted": y_pred_final
-        }, index=backtest_dates).tail(60) # Slice last 60 test records for maximum chart readability
+        }, index=backtest_dates).tail(60) # slice last 60 test records for maximum chart readability
         
         return prediction_value, final_rmse, final_mae, final_r2, last_known_close, backtest_df
     except Exception:
@@ -161,7 +164,7 @@ while True:
         current_candles.pop(0)
     st.session_state["streaming_ohlc_bars"] = current_candles
     
-    # --- 1. RENDER HUD QUANT METRICS ROW ---
+    # render hub quant metrics row
     with metric_placeholder.container():
         c1, c2, c3, c4, c5 = st.columns(5)
         c1.metric(f"{massive_ticker} Live (INR)", f"₹{gen_close:,.2f}")
@@ -170,12 +173,12 @@ while True:
         c4.metric("Test MAE", f"{mae:.4f}")
         c5.metric("Test R² Score", f"{r2:.4f}")
         
-    # --- 2. RENDER MULTI-COLUMN SIDE-BY-SIDE INTEGRATED WORKSPACE IN THE SAME ROW ---
+    # render multi-column side-by-sice integrated workspace in the same row
     df_chart = pd.DataFrame(current_candles)
     with workspace_row_placeholder.container():
         left_col, right_col = st.columns(2)
         
-        # LEFT COLUMN BLOCK: Live Real-Time Massive API Candlestick Tracker Feed
+        # left colunm: Live Real-Time Massive API Candlestick Tracker Feed
         with left_col:
             st.write("**Live Trading Stream Window**")
             fig_live = go.Figure(data=[go.Candlestick(
@@ -195,22 +198,22 @@ while True:
             )
             st.plotly_chart(fig_live, use_container_width=True, key=f"live_chart_{int(time.time())}")
             
-        # RIGHT COLUMN BLOCK: Model Performance Backtest Chart (Actual vs. Predicted Target Pricing)
+        # right column: Model Performance Backtest Chart (Actual vs. Predicted Target Pricing)
         with right_col:
             st.write("**Model Backtest Predictive Evaluation Chart**")
             fig_pred = go.Figure()
             if not df_backtest.empty:
-                # Plot your unseen Out-Of-Sample Test actuals vector line
+                # plot your unseen Out-Of-Sample Test actuals vector line
                 fig_pred.add_trace(go.Scatter(
                     x=df_backtest.index, y=df_backtest["Actual"],
                     mode='lines', name='Actual Price Target', line=dict(color='#2196f3', width=2)
                 ))
-                # Plot your pipeline's model predictions vector line
+                # plot your pipeline's model predictions vector line
                 fig_pred.add_trace(go.Scatter(
                     x=df_backtest.index, y=df_backtest["Predicted"],
                     mode='lines', name='Predicted Target Curve', line=dict(color='#ff9800', width=2, dash='dot')
                 ))
-            # Apply layout definitions for the prediction backtest graph
+            # apply layout definitions for the prediction backtest graph
             fig_pred.update_layout(
                 template="plotly_dark", 
                 height=420,
@@ -220,45 +223,6 @@ while True:
                 legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
             )
             st.plotly_chart(fig_pred, use_container_width=True, key=f"pred_chart_{int(time.time())}")
-        
-    # --- 3. RENDER DYNAMIC MOVERS PANELS ---
-    try:
-        symbols_pool = ["RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS"]
-        raw_list = []
-        
-        for sym in symbols_pool:
-            hist = yf.Ticker(sym).history(period="1d", progress=False)
-            if not hist.empty:
-                if isinstance(hist.columns, pd.MultiIndex):
-                    hist.columns = hist.columns.get_level_values(0)
-                o_val = float(hist['Open'].iloc[-1])
-                c_val = float(hist['Close'].iloc[-1])
-                pct_chg = ((c_val - o_val) / o_val) * 100
-                raw_list.append({
-                    "Symbol": sym.replace(".NS", ""),
-                    "Price": f"₹{c_val:,.2f}",
-                    "Change %": pct_chg
-                })
-                
-        full_sorted_df = pd.DataFrame(raw_list).sort_values(by="Change %", ascending=False)
-        
-        with movers_placeholder.container():
-            col_bull, col_bear = st.columns(2)
-            
-            with col_bull:
-                st.write("▲ MARKET DEMAND (BULLISH)")
-                bull_display = full_sorted_df.head(3).copy()
-                bull_display["Change %"] = bull_display["Change %"].map(lambda x: f"+{x:.2f}%")
-                st.dataframe(bull_display.set_index("Symbol"), use_container_width=True)
-                
-            with col_bear:
-                st.write("▼ MARKET SHORTING (BEARISH)")
-                bear_display = full_sorted_df.tail(3).copy().sort_values(by="Change %", ascending=True)
-                bear_display["Change %"] = bear_display["Change %"].map(lambda x: f"{x:.2f}%")
-                st.dataframe(bear_display.set_index("Symbol"), use_container_width=True)
-                
-    except Exception:
-        pass
-        
+
     # Maintain 1-second operational interval loop pacing
     time.sleep(1)

@@ -38,9 +38,9 @@ def calculate_features(df):
 @st.cache_resource
 def load_model():
     try:
-        return joblib.load("final_linear_regression_model.joblib")
+        return joblib.load("sbin_model.joblib")
     except FileNotFoundError:
-        st.error("Error: 'final_linear_regression_model.joblib' not found. Please place it in the same directory.")
+        st.error("Error: 'sbin_model.joblib' not found. Please place it in the same directory.")
         return None
 
 pipeline = load_model()
