@@ -18,11 +18,11 @@ st.set_page_config(page_title="Stock Price Prediction", layout="wide")
 MASSIVE_API_KEY = "DV7Tmnz6qSuGtQQHJauihi3jRNgfKGcT"
 
 # taking input from user
-ticker_input = st.text_input("Enter Ticker Symbol (e.g., RELIANCE, TCS, INFY, AAPL):", value="NSEI").upper()
+ticker_input = st.text_input("Enter Ticker Symbol (e.g., RELIANCE, TCS, INFY, AAPL):", value="^NSEI").upper()
 
 # format exact ticker boundaries
-ticker_symbol = ticker_input if ticker_input.endswith(".NS") else f"{ticker_input}.NS"
-massive_ticker = ticker_input.replace(".NS", "")
+ticker_symbol = ticker_input if ticker_input.endswith(".NS") else f"{ticker_input}"
+massive_ticker = ticker_input.replace("", "")
 
 # create features from dataframe
 def create_features(df):
